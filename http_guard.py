@@ -1,12 +1,16 @@
 """Dependency-free ASGI boundary, testable without starting a listener."""
 import asyncio
+import contextvars
 import secrets
 
+PRIVATE_REQUEST = contextvars.ContextVar('private_mail_request', default=False)
+
 class Guard:
-    def __init__(self, app, token):
+    def __init__(self, app, token, validate_body=None):
         if type(token) is not str or len(token) < 32 or not token.isascii() or token.startswith('PLACEHOLDER'):
             raise ValueError('authentication_required')
         self.app, self.token = app, token
+        self.validate_body = validate_body
         self.busy = False
 
     async def __call__(self, scope, receive, send):
@@ -39,6 +43,7 @@ class Guard:
         if self.busy:
             return await reject(429)
         self.busy = True
+        context_token = PRIVATE_REQUEST.set(True)
         try:
             body = bytearray()
             async with asyncio.timeout(5):
@@ -51,6 +56,8 @@ class Guard:
                         return await reject(413)
                     if not event.get('more_body', False):
                         break
+            if self.validate_body is not None and not self.validate_body(bytes(body)):
+                return await reject(400)
             delivered = False
             async def replay():
                 nonlocal delivered
@@ -62,4 +69,5 @@ class Guard:
         except TimeoutError:
             await reject(408)
         finally:
+            PRIVATE_REQUEST.reset(context_token)
             self.busy = False

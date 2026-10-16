@@ -1,12 +1,13 @@
 {
   "python": "3.14.6",
-  "tests_run": 34,
+  "tests_run": 49,
   "failures": 0,
   "errors": 0,
   "secret_scan": "PASS",
   "scan_scope": "explicit source/doc allowlist; heuristic, not a security guarantee",
   "live_mailbox_access": false,
   "listener_started": false,
-  "mcp_sdk_integration": "NOT RUN: official SDK absent; dependency review pending",
+  "mcp_sdk_version": "1.30.0",
+  "mcp_sdk_integration": "in-process ASGI + official SDK client; see test_protocol.py",
   "result": "PASS"
 }
